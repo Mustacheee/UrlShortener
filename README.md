@@ -2,7 +2,7 @@
 
 ## Setup
 
-### Docker (Recommended)
+### Docker
 
 - Install Docker if you do not have it already
   - https://docs.docker.com/get-docker/
