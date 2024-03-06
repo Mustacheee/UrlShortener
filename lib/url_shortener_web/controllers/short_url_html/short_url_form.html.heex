@@ -1,0 +1,10 @@
+<.simple_form :let={f} for={@changeset} action={@action}>
+  <.error :if={@changeset.action}>
+    Oops, something went wrong! Please check the errors below.
+  </.error>
+  <.input field={f[:long_url]} type="text" label="Long url" />
+  <.input field={f[:slug]} type="text" label="Short url" />
+  <:actions>
+    <.button>Update Short URL</.button>
+  </:actions>
+</.simple_form>

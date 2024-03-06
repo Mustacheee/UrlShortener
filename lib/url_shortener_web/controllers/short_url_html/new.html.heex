@@ -1,0 +1,24 @@
+<div class="px-4 py-10 sm:px-6 sm:py-28 lg:px-8 xl:px-28 xl:py-32">
+  <div class="mx-auto max-w-xl lg:mx-0">
+    <h1 class="text-brand mt-10 flex items-center text-sm font-semibold leading-6">
+      Tired of long URLs that you have to enter?
+    </h1>
+    <p class="text-[2rem] mt-4 font-semibold leading-10 tracking-tighter text-zinc-900 text-balance">
+      Create a Short URL right here, right now!
+    </p>
+    <p class="mt-4 text-base leading-7 text-zinc-600">
+      Without further ado, I present to you the worlds <s>first</s>
+      next URL shortener! No longer do you have to enter those long, crazy URLs into the search bar.
+    </p>
+    <div class="flex">
+      <div class="w-full sm:w-auto">
+        <.simple_form :let={f} for={@changeset} action={~p"/short_urls"}>
+          <.input field={f[:long_url]} placeholder="Enter Long URL" />
+          <:actions>
+            <.button class="w-full">Create Short URL</.button>
+          </:actions>
+        </.simple_form>
+      </div>
+    </div>
+  </div>
+</div>

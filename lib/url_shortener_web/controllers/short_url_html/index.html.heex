@@ -1,0 +1,36 @@
+<.header>
+  Listing Short urls
+  <:actions>
+    <.link href={~p"/short_urls/new"}>
+      <.button>New Short url</.button>
+    </.link>
+    <.link href={~p"/export"}>
+      <.button>Export to CSV</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<h2 :if={Enum.empty?(@short_urls)}>No Shortened URLS to display</h2>
+
+<.table
+  :if={!Enum.empty?(@short_urls)}
+  id="short_urls"
+  rows={@short_urls}
+  row_click={&JS.navigate(~p"/short_urls/#{&1}")}
+>
+  <:col :let={short_url} label="Short Slug"><%= UrlShortener.Urls.get_full_short_route(short_url) %></:col>
+  <:col :let={short_url} label="Original URL"><%= short_url.long_url %></:col>
+  <:col :let={short_url} label="Usage Count"><%= short_url.usage_count %></:col>
+  <:col :let={short_url} label="Expires At"><%= short_url.expires_at %></:col>
+  <:action :let={short_url}>
+    <div class="sr-only">
+      <.link navigate={~p"/short_urls/#{short_url}"}>Show</.link>
+    </div>
+    <.link navigate={~p"/short_urls/#{short_url}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={short_url}>
+    <.link href={~p"/short_urls/#{short_url}"} method="delete" data-confirm="Are you sure?">
+      Delete
+    </.link>
+  </:action>
+</.table>

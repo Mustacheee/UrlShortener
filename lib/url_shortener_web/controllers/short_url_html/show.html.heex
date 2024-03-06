@@ -1,0 +1,18 @@
+<.header>
+  Shortened url for <%= @short_url.long_url %>
+  <:subtitle>This is a short_url record from your database.</:subtitle>
+  <:actions>
+    <.link href={~p"/short_urls/#{@short_url}/edit"}>
+      <.button>Edit short_url</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Original URL"><%= @short_url.long_url %></:item>
+  <:item title="Shortened URL"><%= UrlShortener.Urls.get_full_short_route(@short_url) %></:item>
+  <:item title="Usage Count"><%= @short_url.usage_count %></:item>
+  <:item title="Expires At"><%= @short_url.expires_at %></:item>
+</.list>
+
+<.back navigate={~p"/short_urls"}>Back to short_urls</.back>
