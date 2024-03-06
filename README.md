@@ -18,11 +18,11 @@
 
 - Install `asdf` for elixir/erland package manager
   - https://asdf-vm.com/guide/getting-started.html#_1-install-dependencies
-- Install Erlang 24.0
+- Install Erlang 26
   - `asdf plugin add erlang`
   - `asdf install erlang 26.2.2`
   - `asdf global erlang 26.2.2`
-- Install Elixir 1.15.0
+- Install Elixir 1.16
   - `asdf plugin add elixir`
   - `asdf install elixir 1.16.1-otp-26`
   - `asdf global elixir 1.16.1-otp-26`
