@@ -52,4 +52,12 @@ defmodule UrlShortener.Urls.Encoder58 do
       acc + value
     end)
   end
+
+  @impl true
+  def is_valid?(value) when is_binary(value) do
+    value
+    |> String.split("", trim: true)
+    # Check if any characters are not in our sequence
+    |> Enum.all?(&Enum.member?(@sequence, &1))
+  end
 end

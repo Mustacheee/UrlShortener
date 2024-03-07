@@ -2,6 +2,8 @@ defmodule UrlShortenerWeb.ShortUrlControllerTest do
   use UrlShortenerWeb.ConnCase
 
   import UrlShortener.UrlsFixtures
+
+  alias Faker.Beer
   alias UrlShortener.Urls
 
   @create_attrs %{long_url: "https://localhost.com"}
@@ -34,7 +36,7 @@ defmodule UrlShortenerWeb.ShortUrlControllerTest do
     test "redirects to show when data is valid", %{conn: conn} do
       unique_id = Enum.random(100..200)
       expect(UniqueIdSequencerMock, :get_unique_id, fn -> unique_id end)
-      expect(UrlEncoderMock, :encode, fn ^unique_id -> Faker.Beer.brand() end)
+      expect(UrlEncoderMock, :encode, fn ^unique_id -> Beer.brand() end)
 
       conn = post(conn, ~p"/short_urls", short_url: @create_attrs)
 
@@ -100,8 +102,25 @@ defmodule UrlShortenerWeb.ShortUrlControllerTest do
       assert redirected_to(conn) == short_url.long_url
     end
 
+    test "expired slug no longer works", %{conn: conn} do
+      unique_id = Enum.random(100..20_000)
+      expect(UniqueIdSequencerMock, :get_unique_id, fn -> unique_id end)
+      expect(UrlEncoderMock, :encode, fn ^unique_id -> "#{Beer.brand()}-#{unique_id}" end)
+
+      expires_at =
+        Timex.now()
+        |> Timex.shift(minutes: -1)
+        |> Timex.to_datetime()
+        |> DateTime.truncate(:second)
+
+      short_slug = short_url_fixture(%{expires_at: expires_at})
+
+      conn = get(conn, ~p"/s/#{short_slug.slug}")
+      assert redirected_to(conn) == ~p"/"
+    end
+
     test "non-existent slug redirects to home page", %{conn: conn} do
-      conn = get(conn, ~p"/s/slug")
+      conn = get(conn, ~p"/s/badslug")
       assert redirected_to(conn) == ~p"/"
     end
   end
@@ -146,9 +165,9 @@ defmodule UrlShortenerWeb.ShortUrlControllerTest do
   end
 
   defp create_short_url(_p \\ %{}) do
-    unique_id = Enum.random(100..200)
+    unique_id = Enum.random(100..20_000)
     expect(UniqueIdSequencerMock, :get_unique_id, fn -> unique_id end)
-    expect(UrlEncoderMock, :encode, fn ^unique_id -> Faker.Beer.brand() end)
+    expect(UrlEncoderMock, :encode, fn ^unique_id -> "#{Beer.brand()}-#{unique_id}" end)
 
     short_url = short_url_fixture()
     %{short_url: short_url}

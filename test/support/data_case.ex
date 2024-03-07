@@ -26,6 +26,8 @@ defmodule UrlShortener.DataCase do
       import Ecto.Query
       import UrlShortener.DataCase
       import Mox
+
+      setup :verify_on_exit!
     end
   end
 

@@ -1,6 +1,7 @@
 defmodule UrlShortener.UrlsTest do
   use UrlShortener.DataCase
 
+  alias Faker.{Beer, Cat}
   alias UrlShortener.Urls
 
   describe "short_urls" do
@@ -23,27 +24,38 @@ defmodule UrlShortener.UrlsTest do
     test "create_short_url/1 with valid data creates a short_url" do
       unique_id = Enum.random(100..200)
       expect(UniqueIdSequencerMock, :get_unique_id, fn -> unique_id end)
-      expect(UrlEncoderMock, :encode, fn ^unique_id -> Faker.Beer.brand() end)
+      expect(UrlEncoderMock, :encode, fn ^unique_id -> Beer.brand() end)
 
       valid_attrs = %{
         long_url: "http://example.com",
-        usage_count: 42,
-        expires_at: ~U[2024-03-04 03:00:00Z]
+        usage_count: 42
       }
 
+      now = Timex.now()
       assert {:ok, %ShortUrl{} = short_url} = Urls.create_short_url(valid_attrs)
       assert short_url.long_url == "http://example.com"
       refute is_nil(short_url.slug)
       assert short_url.usage_count == 42
       assert short_url.unique_id == unique_id
-      assert short_url.expires_at == ~U[2024-03-04 03:00:00Z]
+      # Expiration should be in the future
+      assert Timex.compare(now, short_url.expires_at, :month) == -1
     end
 
     test "create_short_url/1 with invalid long_url returns error chanegset" do
       for url <- ["exa", "example.", "example.com", "htp.example.com", "http:example.com"] do
         assert {:error, %Ecto.Changeset{}} =
-                 Urls.create_short_url(%{long_url: url, unique_id: 2_000})
+                 Urls.create_short_url(%{long_url: url})
       end
+    end
+
+    test "create_short_url/1 with invalid slug returns an error changeset" do
+      slug = "bad"
+      unique_id = Enum.random(100..200)
+      expect(UniqueIdSequencerMock, :get_unique_id, fn -> unique_id end)
+      expect(UrlEncoderMock, :is_valid?, fn ^slug -> false end)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Urls.create_short_url(%{long_url: "https://test.com", slug: slug})
     end
 
     test "create_short_url/1 with valid long_url is successful" do
@@ -55,9 +67,9 @@ defmodule UrlShortener.UrlsTest do
             "http://www.example.com?one=1&two=2",
             "https://www.example.com/1/a/abc?d=1"
           ] do
-        unique_id = Enum.random(100..200)
+        unique_id = Enum.random(100..20_000)
         expect(UniqueIdSequencerMock, :get_unique_id, fn -> unique_id end)
-        expect(UrlEncoderMock, :encode, fn ^unique_id -> Faker.Beer.brand() end)
+        expect(UrlEncoderMock, :encode, fn ^unique_id -> "#{Beer.brand()}-#{unique_id}" end)
 
         assert {:ok, %ShortUrl{} = short_url} = Urls.create_short_url(%{long_url: url})
 
@@ -67,7 +79,6 @@ defmodule UrlShortener.UrlsTest do
     end
 
     test "create_short_url/1 with invalid data returns error changeset" do
-      expect(UniqueIdSequencerMock, :get_unique_id, fn -> 100 end)
       assert {:error, %Ecto.Changeset{}} = Urls.create_short_url(@invalid_attrs)
     end
 
@@ -99,16 +110,20 @@ defmodule UrlShortener.UrlsTest do
       expect(UrlEncoderMock, :encode, fn ^original_id -> "testSlug" end)
       short_url = short_url_fixture()
 
+      new_slug = Cat.breed()
       # Generate a new id and update to a custom slug
       unique_id = :rand.uniform(100)
-      update_attrs = %{slug: "custom"}
-      # Se the custom slug to map back to our new id
-      expect(UrlEncoderMock, :decode, fn "custom" -> unique_id end)
+      update_attrs = %{slug: new_slug}
+
+      # Set the custom slug to map back to our new id
+      UrlEncoderMock
+      |> expect(:decode, fn ^new_slug -> unique_id end)
+      |> expect(:is_valid?, fn ^new_slug -> true end)
 
       assert {:ok, %ShortUrl{} = updated_short} = Urls.update_short_url(short_url, update_attrs)
 
       # Slug and decoded id should match what we expect them to be
-      assert updated_short.slug == "custom"
+      assert updated_short.slug == new_slug
       assert updated_short.unique_id == unique_id
     end
 
@@ -155,9 +170,13 @@ defmodule UrlShortener.UrlsTest do
 
     test "get_short_url_by_slug/1 returns the expected short_url record" do
       unique_id = Enum.random(100..200)
-      expect(UrlEncoderMock, :decode, fn "abc" -> unique_id end)
+      slug = Cat.name()
 
-      short_url = short_url_fixture(%{slug: "abc"})
+      UrlEncoderMock
+      |> expect(:decode, fn ^slug -> unique_id end)
+      |> expect(:is_valid?, fn ^slug -> true end)
+
+      short_url = short_url_fixture(%{slug: slug})
       response = Urls.get_short_url_by_slug(short_url.slug)
 
       assert short_url.id == response.id
@@ -168,10 +187,38 @@ defmodule UrlShortener.UrlsTest do
       assert is_nil(response)
     end
 
+    test "is_expired?/1 future date return false" do
+      now = Timex.now()
+
+      expires_at =
+        now
+        |> Timex.shift(minutes: 1)
+        |> Timex.to_datetime()
+        |> DateTime.truncate(:second)
+
+      short_url = %ShortUrl{expires_at: expires_at}
+
+      refute Urls.is_expired?(short_url)
+    end
+
+    test "is_expired?/1 past date return true" do
+      now = Timex.now()
+
+      expires_at =
+        now
+        |> Timex.shift(minutes: -1)
+        |> Timex.to_datetime()
+        |> DateTime.truncate(:second)
+
+      short_url = %ShortUrl{expires_at: expires_at}
+
+      assert Urls.is_expired?(short_url)
+    end
+
     defp create_short_url(params \\ %{}) do
-      unique_id = Enum.random(100..200)
+      unique_id = Enum.random(100..20_000)
       expect(UniqueIdSequencerMock, :get_unique_id, fn -> unique_id end)
-      expect(UrlEncoderMock, :encode, fn ^unique_id -> Faker.Beer.brand() end)
+      expect(UrlEncoderMock, :encode, fn ^unique_id -> "#{Beer.brand()}-#{unique_id}" end)
 
       short_url_fixture(params)
     end

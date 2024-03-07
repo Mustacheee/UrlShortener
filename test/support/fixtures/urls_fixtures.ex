@@ -13,7 +13,6 @@ defmodule UrlShortener.UrlsFixtures do
     {:ok, short_url} =
       attrs
       |> Enum.into(%{
-        expires_at: ~U[2024-03-04 03:00:00Z],
         long_url: "https://#{Internet.domain_name()}/#{UUID.v4()}",
         usage_count: 0
       })

@@ -8,6 +8,8 @@ defmodule UrlShortener.Urls do
   alias UrlShortener.Repo
   alias UrlShortener.Urls.ShortUrl
 
+  require Logger
+
   @doc """
   Returns the list of short_urls.
 
@@ -106,10 +108,12 @@ defmodule UrlShortener.Urls do
     Repo.get_by(ShortUrl, slug: slug)
   end
 
-  def increment_usage(%ShortUrl{} = short_url) do
+  def increment_usage(%ShortUrl{slug: slug}) do
+    Logger.info("Incrementing usage for #{slug}")
+
     query =
       from(s in ShortUrl,
-        where: s.slug == ^short_url.slug
+        where: s.slug == ^slug
       )
 
     Repo.update_all(query, inc: [usage_count: 1])
@@ -124,5 +128,9 @@ defmodule UrlShortener.Urls do
     host = UrlShortenerWeb.Endpoint.url()
     short_url_route = "/s/#{short_url.slug}"
     "#{host}#{short_url_route}"
+  end
+
+  def is_expired?(%ShortUrl{expires_at: expires_at}) do
+    Timex.after?(Timex.now(), expires_at)
   end
 end

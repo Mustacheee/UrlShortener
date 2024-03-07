@@ -66,4 +66,47 @@ defmodule UrlShortener.Urls.Encoder58Test do
       assert processed == value
     end
   end
+
+  describe "is_valid/1" do
+    test "strings with valid characters pass" do
+      values = [
+        "111",
+        "aaa",
+        "AAA",
+        "1aZV3"
+      ]
+
+      Enum.each(values, fn slug ->
+        assert Encoder58.is_valid?(slug)
+      end)
+    end
+
+    test "special characters are flagged as bad" do
+      values = [
+        "a%d2",
+        "!23",
+        "1@&",
+        "*h#",
+        "-32"
+      ]
+
+      Enum.each(values, fn slug ->
+        refute Encoder58.is_valid?(slug)
+      end)
+    end
+
+    test "invalid alpha-numeric characters are flagged as bad" do
+      values = [
+        "890",
+        "look",
+        "Oof",
+        "nIce",
+        "oO0lI"
+      ]
+
+      Enum.each(values, fn slug ->
+        refute Encoder58.is_valid?(slug)
+      end)
+    end
+  end
 end
